@@ -178,4 +178,8 @@ summary(ols)
 ```
 This should be really concerning. It would mean strong colinearity. R is doing us a favor and automatically dropping some redundant features.
 
+```{r}
+
+```
+
 
