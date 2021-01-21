@@ -2,7 +2,9 @@
 title: "HW1"
 author: "Noah Love"
 date: "1/18/2021"
-output: html_document
+output:
+  pdf_document: default
+  html_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -30,20 +32,121 @@ Hint:
     You will need to claim a free API key before you can query data
     The functions in httr should be helpful, here is some sample code if you have not done so before.
 
-### Q2
 
+
+```{r, echo=FALSE}
+#For VOO
+api_key <- "SEDREZCZEW7NAOQK"
+```
+
+
+```{r}
+#library(httr)
+# url_VOO <- "https://www.alphavantage.co/query?function=TIME_SERIES_WEEKLY&symbol=VOO&apikey=SEDREZCZEW7NAOQK"
+# url_GDXJ <- "https://www.alphavantage.co/query?function=TIME_SERIES_WEEKLY&symbol=GDXJ&apikey=SEDREZCZEW7NAOQK"
+# 
+# responce <- GET(url = url_VOO, query = params)
+
+function_name <- "TIME_SERIES_WEEKLY"
+stock_ticker <- "VOO"
+my_data_type <-"csv"
+output_size <- "full"
+api_call <- paste0("https://www.alphavantage.co/query?function=",
+                   function_name,
+                   "&symbol=",
+                   stock_ticker,
+                   "&outputsize=",
+                   output_size,
+                   "&apikey=",
+                   api_key,
+                   "&datatype=",
+                   my_data_type)
+
+VOO <- read.csv(url(api_call))
+
+head(VOO)
+
+```
+
+```{r}
+#For VOO
+
+function_name <- "TIME_SERIES_WEEKLY"
+stock_ticker <- "GDXJ"
+my_data_type <-"csv"
+output_size <- "full"
+api_call <- paste0("https://www.alphavantage.co/query?function=",
+                   function_name,
+                   "&symbol=",
+                   stock_ticker,
+                   "&outputsize=",
+                   output_size,
+                   "&apikey=",
+                   api_key,
+                   "&datatype=",
+                   my_data_type)
+
+GDXJ <- read.csv(url(api_call))
+
+head(GDXJ)
+```
+
+                   
+                   
+### Q2
 Please plot the close price for VOO against the different weeks and overlay the regression line for this scatter plot.
 
-    You do not need to label your week index but the prices should be labeled.
+You do not need to label your week index but the prices should be labeled.
+
+```{r}
+library(ggplot2)
+library(dplyr)
+
+
+
+VOO$timestamp <- as.Date(VOO$timestamp)
+
+ggplot(VOO, aes(x = timestamp,y = close)) + 
+  geom_line() +
+  xlab("day") + 
+  ylab("price") +
+  geom_smooth(method = "lm", formula = y~x)
+```
+
+
+
 
 ### Q3
-
 Please plot the residuals from the regression in Q2 against the close price of GDXJ.
 
-    label your axes with units.
-    Your title should include the correlation value, rounded to the nearest hundredth.
-    Please show the code that demonstrates your decision on merging the 2 time series.
+label your axes with units.
+Your title should include the correlation value, rounded to the nearest hundredth.
+Please show the code that demonstrates your decision on merging the 2 time series.
 
-### Q4
+```{r}
+linear <- lm(VOO$close ~ VOO$timestamp)
 
-Relying only on the scatter plot, would you say the belief between gold and the market is supported or rejected? Please explain.
+
+subset_GDXJ <- GDXJ[1:length(linear$residuals),]
+#subset_GDXJ
+
+
+gold_vs_stock <- lm(subset_GDXJ$close ~ linear$residuals)
+summary(gold_vs_stock)
+
+
+plot(x = linear$residuals, y = subset_GDXJ$close,
+  xlab="Difference in stock market performance to linear",
+  ylab = "Closing price of GDXJ",
+  main = "Correlation coeff: 0.049",
+  abline(lm(subset_GDXJ$close ~ linear$residuals)))
+
+```
+
+
+
+###  Q4
+Relying only on the scatter plot, would you say the belief between gold and the market is supported or rejected? Please explain.                   
+ 
+Relying on the scatter plot and the line I plotted, gold is not inversely related. In fact, when the market it beating its performace, on average gold is closing higher as well. Also, when the stock market is doing really poorly (compared to the linear regression) gold also closes really low as seen by the strong tail around -40.                  
+                   
