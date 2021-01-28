@@ -1,0 +1,174 @@
+---
+title: "classification"
+author: "Wayne Lee"
+date: "1/26/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Music dataset
+
+From the [CORGIS data project](https://corgis-edu.github.io/corgis/) I've obtained a [music dataset](https://corgis-edu.github.io/corgis/csv/music/).
+
+```{r}
+music <- read.csv("A:/Downloads/music_hottest_song_only.csv")
+y <- as.numeric(music$artist.terms == "hip hop")
+x <- music$song.hotttnesss
+```
+
+## Logistic Regression Review
+$Y \sim Binomial(n=1, p(X))$
+
+$p(X) = \frac{exp(X\beta)}{\exp(X\beta) + 1}$
+
+```{r}
+logit <- function(x){exp(x) / (1 + exp(x))}
+logistic_obj <- function(params, X, y){
+  xbeta <- cbind(1, X) %*% params
+  p <- logit(xbeta)
+  return(-sum(dbinom(y, size=1, prob=p, log=TRUE)))
+}
+optim(c(1, 1), logistic_obj, X=x, y=y)
+
+
+```
+```{r}
+#Wayne created in class
+my_model <- glm(y ~ x,
+                family = binomial(logit))
+summary(my_model)
+```
+
+
+
+How to run logistic regression in R?
+```{r}
+train <- sample(c(TRUE, FALSE), nrow(music), replace = TRUE)
+
+#Modify the subset we are using
+mod <- glm(y ~ x, family = binomial(link = "logit"),
+           subset = train)
+#To use the model, we pass it to the predict function. We pass in the new data
+#We pass in the compliment of the subset we used (train = !test)
+#We also pass in response. 
+
+#What is the probability that you think they are a 1 vs a 0
+test_probs <-
+  predict(mod, newdata = data.frame(x = x[!train]), type = "response")
+
+class(test_probs)
+
+#This should feel absolutely like it is 0 and not one
+hist(test_probs)
+
+#Round the numbers
+test_pred <- test_probs > 0.5
+
+#Head the numbers
+head(test_pred)
+
+#How good is my prediction
+#First, how many predications did we get correct
+
+same_as_data <- as.numeric(test_pred) == y[!train]
+mean(same_as_data)
+
+#About 96 percent. Seems really good.
+
+
+
+```
+Then we ask is the data unbalanced if you do you this for cancer in the general population for example. Could be bad if you have 96 percent accuracy
+
+We call this a classification error. The histogram should be a red flag. We are saying everything is 0, and then are just wrong when its 1. Iin this case, every song is not hip hop, and we are right 96% of the time.
+
+
+
+|       | Y = 1 | Y = 0     |
+| :---        |    :----:   |          ---: |
+| $\hat{Y}$ = 1      | A       | B   |
+|  $\hat{Y}$ = 0    | C        | D      |
+
+$\frac{A}{A + C}$ our recall! Of all the records that are "1", how many are our model capturing
+
+$\frac{B}{B + D}$ our precision! Of all the records that are "1", how many are our model capturing
+
+The amazing thing is that we can actually make one of these one!
+
+```{r}
+alpha <- 0.5
+test_pred <- test_probs > alpha
+truly1 <- y[!train] ==1
+called1 <- as.numeric(test_pred)
+
+recall <- sum(called1 & truly1)/ sum(truly1)
+precision <- sum(truly1 & called1)/ sum(called1)
+recall
+precision
+```
+Right now the recall is really bad: but lets make everything one and make our recall really good!
+
+```{r}
+alpha <- 0
+test_pred <- test_probs > alpha
+truly1 <- y[!train] ==1
+called1 <- as.numeric(test_pred)
+
+recall <- sum(called1 & truly1)/ sum(truly1)
+precision <- sum(truly1 & called1)/ sum(called1)
+recall
+precision
+
+```
+Now lets make a sequence!
+```{r}
+alphas <- seq(0,1, length.out = 10000)
+recalls <- rep(NA, length(alphas))
+precisions <- rep(NA, length(alphas))
+
+for(i in seq_along(alphas)){
+  alpha <- alphas[i]
+  test_pred <- test_probs > alpha
+  truly1 <- y[!train] ==1
+  called1 <- as.numeric(test_pred)
+  
+  recall <- sum(called1 & truly1)/ sum(truly1)
+  precision <- sum(truly1 & called1)/ sum(called1)
+  recall[i] <- recall
+  precision[i] <- precision
+}
+
+#plot(recalls, precisions)
+
+```
+ What are the most popular "artist.terms" in the dataset?
+
+
+
+```{r}
+
+head(music)
+music$artist.terms
+
+artists_sorted <- sort(table(music$artist.terms), decreasing =T)
+artists_sorted[1]
+
+```
+
+- Choose one "artist.terms" to predict for, then try running logistic regression vs usual lm() on all of the other variables, do they pick up different variables? What would your next steps be?
+
+```{r}
+logit <- function(x){exp(x) / (1 + exp(x))}
+logistic_obj <- function(params, X, y){
+  xbeta <- cbind(1, X) %*% params
+  p <- logit(xbeta)
+  return(-sum(dbinom(y, size=1, prob=p, log=TRUE)))
+}
+optim(c(1, 1), logistic_obj, X=x, y=y)
+```
+
+
+Imagine you're doing fake news prediction, what metric(s) would you care more about the most? How would you recommend a target for these metrics for a company like Facebook?
