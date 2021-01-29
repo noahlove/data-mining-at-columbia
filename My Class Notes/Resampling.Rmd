@@ -1,0 +1,47 @@
+---
+title: "Resampling Notes"
+author: "Noah Love"
+date: "1/28/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Resampling
+
+Often with inbalanced data sets you want to upsample (or downsample). You can create or get rid of data to make the sample more proportionate. 
+
+Alternatively you can Bootstrap the data. It is like asking what is the distribution of something we don't know. We can use simulation to get a sense of what the distribution is (often used for uncertainty).
+
+However, we always need to avoid overfitting. It is important to also do cross-validation then. 
+
+### Up-sampling
+
+![Up-sampling](A:\Documents\Semester 6\data-mining-at-columbia\My Class Notes\Images\upsampling.JPG)
+
+It works, but it is important to rememeber you aren't creating new data. You are essentially adding more weight to the already existing data. But it does help. 
+
+### Bootstrapping
+
+If the data changes, how much will my model change? You have these questions  about slightly different sets. So you create a similar bootstrap sample and do the same model on both. Then you look at the results. By collapsing across the samples (and doing more), you can see how sensitive the data is and how it changes with different inputs. 
+
+![Bootstrapping](A:\Documents\Semester 6\data-mining-at-columbia\My Class Notes\Images\bootstrap.JPG)
+
+### Cross Validation
+
+When you generalize beyond the data set you have, how bad is your error? This is the problem of overfitting. You can't generalize. Cross validation tries to tell you how bad of a problem you have. If you use tuning hyperparameters however, you can help fix this. You can leave part of the original set out to test on later. You switch the training set and validation set for all of the test.
+
+In general, when tuning for hyperparameters (like degrees of polynomials) you ahve to make a choice. For example earlier with polynomials we graphed it using validation and training. Once we pick the optimal hyperparameter from the training set tested on the validation set. Then we apply it onto the test set to get the generalization error. 
+
+In short: 
+- Cross validation between train/validation creates the hyperparameter. (i.e. degrees of polynomial)
+- Then you use all the training and validation data to get the parameters. (coefficients given the polynomial)
+- Then predict on the test data to get the generalization error. 
+
+This should prevent the overfitting from the hyperparameter. If you reapply onto a test set that wasn't used to help you pick this should tell you if there is a problem. 
+
+There is some debate on double cross validation. You can then change the test set and revalidate. Some people argue why not? Our model should be more robust if we cycle through everything. 
+
+Reasons not to: Computational. It is resource intesnive. You can also leak data and ruin you generalization error. 
