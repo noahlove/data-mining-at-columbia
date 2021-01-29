@@ -172,3 +172,20 @@ optim(c(1, 1), logistic_obj, X=x, y=y)
 
 
 Imagine you're doing fake news prediction, what metric(s) would you care more about the most? How would you recommend a target for these metrics for a company like Facebook?
+
+```{r}
+y <- as.numeric(music$artist.terms == "blues-rock")
+
+artist_cols <- grepl("^artist", names(music))
+
+glm1 <- glm(y ~ ., family=binomial, data = music[,artist_cols])
+
+summary(glm)
+
+lm1 <- lm(y ~ ., data = music[, !artist_cols])
+
+summary(lm1)
+
+
+```
+
