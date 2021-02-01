@@ -1,0 +1,161 @@
+---
+title: "Example of converting jsons"
+author: "Noah Love"
+date: "1/30/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Converting nested JSON of unequal lengths to data-frame in R
+
+[Source information from stackoverflow](https://stackoverflow.com/questions/47462634/converting-nested-json-of-unequal-lengths-to-data-frame-in-r)
+
+### Create Sample Data
+```{r}
+dat <- list(structure(list(payload = structure(list(existence_full = 1L, 
+    geo_virtual = "[\"56.9459720|-2.1971226|20|within_50m|4\"]", 
+    latitude = "56.945972", locality = "Stonehaven", `_records_touched` = "{\"crawl\":8,\"lssi\":0,\"polygon_centroid\":0,\"geocoder\":0,\"user_submission\":0,\"tdc\":0,\"gov\":0}", 
+    address = "The Lodge, Dunottar", email = "dunnottarcastle@btconnect.com", 
+    existence_ml = 0.569423821765872, domain_aggregate = "", 
+    name = "Dunnottar Castle", search_tags = c("Dunnottar Castle Aberdeenshire", 
+    "Dunotter Castle"), admin_region = "Scotland", existence = 1L, 
+    category_labels = structure(c("Landmarks", "Buildings and Structures"
+    ), .Dim = 1:2), post_town = "Stonehaven", region = "Kincardineshire", 
+    review_count = "719", geocode_level = "within_50m", tel = "01569 762173", 
+    placerank = 65L, longitude = "-2.197123", placerank_ml = 37.2791607346447, 
+    fax = "01330 860325", category_ids_text_search = "", website = "http://www.dunnottarcastle.co.uk", 
+    status = "1", geocode_confidence = "20", postcode = "AB39 2TL", 
+    category_ids = 108L, country = "gb", `_geocode_quality` = "4"), .Names = c("existence_full", 
+"geo_virtual", "latitude", "locality", "_records_touched", "address", 
+"email", "existence_ml", "domain_aggregate", "name", "search_tags", 
+"admin_region", "existence", "category_labels", "post_town", 
+"region", "review_count", "geocode_level", "tel", "placerank", 
+"longitude", "placerank_ml", "fax", "category_ids_text_search", 
+"website", "status", "geocode_confidence", "postcode", "category_ids", 
+"country", "_geocode_quality")), uuid = "3867aaf3-12ab-434f-b12b-5d627b3359c3"), .Names = c("payload", 
+"uuid")), structure(list(payload = structure(list(existence_full = 1L, 
+    geo_virtual = "[\"56.237480|-5.073578|20|within_50m|4\"]", 
+    latitude = "56.237480", locality = "Inveraray", `_records_touched` = "{\"crawl\":11,\"lssi\":0,\"polygon_centroid\":0,\"geocoder\":0,\"user_submission\":0,\"tdc\":0,\"gov\":0}", 
+    address = "Cherry Park", email = "enquiries@inveraray-castle.com", 
+    longitude = "-5.073578", domain_aggregate = "", name = "Inveraray Castle", 
+    admin_region = "Scotland", search_tags = c("Inveraray Castle Tea Room", 
+    "Inverary Castle"), existence = 1L, category_labels = structure(c("Social", 
+    "Food and Dining", "Restaurants"), .Dim = c(1L, 3L)), region = "Argyll", 
+    review_count = "532", geocode_level = "within_50m", tel = "01499 302203", 
+    placerank = 67L, post_town = "Inveraray", placerank_ml = 41.1997808735227, 
+    fax = "01499 302421", category_ids_text_search = "", website = "http://www.inveraray-castle.com", 
+    status = "1", geocode_confidence = "20", postcode = "PA32 8XE", 
+    category_ids = 347L, country = "gb", `_geocode_quality` = "4", 
+    existence_ml = 0.791488110284778), .Names = c("existence_full", 
+"geo_virtual", "latitude", "locality", "_records_touched", "address", 
+"email", "longitude", "domain_aggregate", "name", "admin_region", 
+"search_tags", "existence", "category_labels", "region", "review_count", 
+"geocode_level", "tel", "placerank", "post_town", "placerank_ml", 
+"fax", "category_ids_text_search", "website", "status", "geocode_confidence", 
+"postcode", "category_ids", "country", "_geocode_quality", "existence_ml"
+)), uuid = "8278ab80-2cd1-4dbd-9685-0d0036b681eb"), .Names = c("payload", 
+"uuid")), structure(list(payload = structure(list(existence_full = 1L, 
+    geo_virtual = "[\"51.483872|-0.606820|100|rooftop|2\"]", 
+    latitude = "51.483872", locality = "Windsor Castle", hours_display = "Mon-Sat 11:30 AM-11:00 PM; Sun 12:00 PM-11:00 PM", 
+    `_records_touched` = "{\"crawl\":7,\"lssi\":0,\"polygon_centroid\":0,\"geocoder\":2,\"user_submission\":0,\"tdc\":0,\"gov\":0}", 
+    address = "", longitude = "-0.606820", domain_aggregate = "", 
+    name = "Windsor Castle", admin_region = "England", search_tags = c("The Windsor Castle", 
+    "The Windsor Castle Pub", "The Windsor Castle Public House", 
+    "Pub Food", "British"), existence = 1L, category_labels = structure(c("Landmarks", 
+    "Buildings and Structures"), .Dim = 1:2), region = "Berkshire", 
+    review_count = "", geocode_level = "rooftop", tel = "020 7766 7304", 
+    placerank = 62L, post_town = "Windsor", placerank_ml = 28.1160845346327, 
+    fax = "01753 832290", category_ids_text_search = "", website = "http://www.royalcollection.org.uk/visit/windsorcastle", 
+    status = "1", hours = "{\"monday\":[[\"11:30\",\"23:00\"]],\"tuesday\":[[\"11:30\",\"23:00\"]],\"wednesday\":[[\"11:30\",\"23:00\"]],\"thursday\":[[\"11:30\",\"23:00\"]],\"friday\":[[\"11:30\",\"23:00\"]],\"saturday\":[[\"11:30\",\"23:00\"]],\"sunday\":[[\"12:00\",\"23:00\"]]}", 
+    neighborhood = "Chalvey", geocode_confidence = "100", postcode = "SL4 1NJ", 
+    category_ids = 108L, country = "gb", `_geocode_quality` = "2", 
+    existence_ml = 0.885705196944165, email = "bookinginfo@royalcollection.org.uk"), .Names = c("existence_full", 
+"geo_virtual", "latitude", "locality", "hours_display", "_records_touched", 
+"address", "longitude", "domain_aggregate", "name", "admin_region", 
+"search_tags", "existence", "category_labels", "region", "review_count", 
+"geocode_level", "tel", "placerank", "post_town", "placerank_ml", 
+"fax", "category_ids_text_search", "website", "status", "hours", 
+"neighborhood", "geocode_confidence", "postcode", "category_ids", 
+"country", "_geocode_quality", "existence_ml", "email")), uuid = "c5f7d8a9-0851-46ef-8da7-ad55e187d3a8"), .Names = c("payload", 
+"uuid")), structure(list(payload = structure(list(existence_full = 1L, 
+    category_ids_text_search = "", placerank_ml = 31.9857184762157, 
+    longitude = "-2.191955", name = "Pitmedden Garden", domain_aggregate = "", 
+    admin_region = "Scotland", languages = "English", region = "Aberdeenshire", 
+    review_count = "2", geocode_level = "rooftop", tel = "01651 842352", 
+    placerank = 57L, post_town = "Ellon", category_labels = structure(c("Landmarks", 
+    "Gardens"), .Dim = 1:2), existence = 1L, fax = "0844 493 2102", 
+    website = "http://www.nts.org.uk/Property/Pitmedden-Garden", 
+    status = "1", geocode_confidence = "100", postcode = "AB41 7PD", 
+    country = "gb", category_ids = 109L, `_geocode_quality` = "4", 
+    existence_ml = 0.849871115334588, email = "information@nts.org.uk", 
+    address = "", `_records_touched` = "{\"crawl\":6,\"lssi\":0,\"polygon_centroid\":0,\"geocoder\":0,\"user_submission\":0,\"tdc\":0,\"gov\":0}", 
+    locality = "Pitmedden", latitude = "57.343233", geo_virtual = "[\"57.343233|-2.191955|100|rooftop|4\"]"), .Names = c("existence_full", 
+"category_ids_text_search", "placerank_ml", "longitude", "name", 
+"domain_aggregate", "admin_region", "languages", "region", "review_count", 
+"geocode_level", "tel", "placerank", "post_town", "category_labels", 
+"existence", "fax", "website", "status", "geocode_confidence", 
+"postcode", "country", "category_ids", "_geocode_quality", "existence_ml", 
+"email", "address", "_records_touched", "locality", "latitude", 
+"geo_virtual")), uuid = "bb57a153-740f-42be-aa4d-ae12d4eb57d4"), .Names = c("payload", 
+"uuid")))
+```
+
+dat
+
+So we called our big data structure dat. 
+```{r}
+lapply(dat, names)
+```
+
+
+So extract them to lists of dataframes
+
+```{r}
+payloads <- lapply(dat, function(x) data.frame(x$payload))
+
+uuids <- lapply(dat, function(x) data.frame(x$uuid))
+
+```
+
+Then bind them "side by side"
+
+```{r}
+newdat <- mapply(cbind, payloads, uuids)
+```
+
+Then look at the dimensions to see if the single line dataframes get properly copied over tot he multiline dataframes. The one feature that is not to your specifications are the NA's. Since the 'uuids' are apparently identifiers, the cbind operations will have copied each of their column contents to columns of the same lengths as the 'payloads':
+
+```{r}
+lapply(payloads, dim)
+```
+
+```{r}
+lapply(uuids, dim)
+```
+
+
+```{r}
+lapply( mapply( cbind, payloads, uuids), dim)
+```
+
+The next level of consolidation might be to assemble all the dataframes "on top of each other since their names are so similar:
+
+```{r}
+lapply( newdat, names)
+```
+
+
+The **rbind.fill** function in Hadley's **plyr**-package can do this efficiently:
+
+```{r}
+library(plyr)
+newdat3 <-  do.call(plyr::rbind.fill, newdat)
+newdat3
+
+newdat3[ , c("locality", "category_labels.3", "neighborhood")]
+       
+```
+
