@@ -159,3 +159,37 @@ newdat3[ , c("locality", "category_labels.3", "neighborhood")]
        
 ```
 
+
+
+### Next Example
+(Source Information)[https://www.r-bloggers.com/2018/10/converting-nested-json-to-a-tidy-data-frame-with-r/]
+
+```{r}
+
+# Get the URL
+url <- "http://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard?&dates=2018&seasontype=2&week=1"
+```
+
+And now, the actual HTTP GET
+request for the data (using the {httr}
+package’s appropriately named GET()
+function).
+
+```{r}
+package(httr)
+
+#Actually Get the data
+resp <- httr::GET(url)
+resp
+
+## Response [http://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard?&dates=2018&seasontype=2&week=1]
+##   Date: 2018-10-24 18:41
+##   Status: 200
+##   Content-Type: application/json;charset=UTF-8
+##   Size: 189 kB
+
+```
+
+
+
+

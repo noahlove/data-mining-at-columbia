@@ -42,21 +42,34 @@ report `25%`.
 
 ### My Work
 ```{r, include=FALSE}
+
+
 votes <- jsonlite::fromJSON('votes.json')
 voters <- jsonlite::fromJSON("voters.json")
 
 length(names(votes))
 
 #names(voting) #displays all the senators in the file
-votes.tibble <- tibble()
-
-votes.tibble <- as_tibble(votes)
-votes.tibble
+# votes.tibble <- tibble()
+# 
+# votes.tibble <- as_tibble(votes)
+# votes.tibble
 
 #head(senator_codes)
+```
 
 
+```{r}
+votes1 <- lapply(votes, function(x) {
+  x[sapply(x, is.null)] <- NA
+  unlist(x)
+})
 
+df <- as.data.frame(do.call("cbind",votes1))
+
+library(DT)
+
+datatable(head(df))
 ```
 
 
