@@ -1,0 +1,18 @@
+---
+title: "Automated Model Selection"
+author: "Noah Love"
+date: "2/2/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+```{r}
+library(readr)
+small_non_retweets_dc_inaug_steal <- read_csv("My Class Notes/small_non_retweets_dc_inaug_steal.csv")
+```
+
