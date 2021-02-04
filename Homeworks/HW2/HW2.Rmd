@@ -243,7 +243,6 @@ correlation_to_GOP <- possible_republicans %>%
   summarise_all(mean)
 
 correlation_to_GOP
-  
 
 mitch_df_3 <- as_tibble(mitch_df, rownames = NA)
 
@@ -251,13 +250,26 @@ negative_with_mitch <- mitch_df_3 %>%
   rownames_to_column() %>% 
   filter(S174 <0) %>% 
   column_to_rownames() %>%  
-  select(S174)
-  
-swapped_mitch_negativity <- data.frame(t(negative_with_mitch[-1]))
-colnames(swapped_mitch_negativity) <- negative_with_mitch[,1]
+  select(S174) %>% 
+  as.data.frame() %>%
+  tibble::rownames_to_column() %>%  
+  pivot_longer(-rowname) %>% 
+  pivot_wider(names_from=rowname, values_from=value) %>% 
+  select(-name) 
 
+dim(negative_with_mitch)
 
-swapped_mitch_negativity
+dim(correlation_to_GOP)
+
+voters_df <- as.data.frame(voters_matrix)
+
+complete_tibble <- as_tibble(rbind.fill(voters_df, correlation_to_GOP, negative_with_mitch))
+
+complete_tibble
+
+finished_tibble <- complete_tibble[ , colSums(is.na(complete_tibble)) == 0]
+
+finished_tibble
 
 ```
 
@@ -266,8 +278,9 @@ swapped_mitch_negativity
   
   
 ```{r}
-senate <- as_tibble(rbind(voters_matrix, votes_matrix), rownames = NA)
-head(senate)
+voters_matrix
+
+
 ```
   
   
