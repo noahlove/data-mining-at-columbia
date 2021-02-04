@@ -228,39 +228,36 @@ image(mitch_df)
 ```{r}
 mitch_df_2 <- as_tibble(mitch_df, rownames = NA)
 
-
-
-
 possible_republicans <- mitch_df_2 %>% 
   rownames_to_column() %>% 
   filter(S174 >= .2) %>% 
   column_to_rownames()
 
-#View(possible_republicans)
+#now all the columns are still there, but only the rows are "possible republicans".
 
+#Then we can compute the average correlation with possible republicans by just averaging each column.  
 
-# json_to_tibble <- function(nested_json){
-#   json_og <-   fromJSON(paste(readLines(nested_json)))
-#   json_df <- ldply(json_og, data.frame)
-#   swapped_df <- data.frame(t(json_df[-1]))
-#   colnames(swapped_df) <- json_df[,1]
-#   json_matrix <- as.matrix(swapped_df)
-#   return(json_matrix)
-# }
+View(possible_republicans)
+
+correlation_to_GOP <- possible_republicans %>% 
+  summarise_all(mean)
+
+correlation_to_GOP
+  
 
 mitch_df_3 <- as_tibble(mitch_df, rownames = NA)
-
 
 negative_with_mitch <- mitch_df_3 %>% 
   rownames_to_column() %>% 
   filter(S174 <0) %>% 
-  column_to_rownames()  
+  column_to_rownames() %>%  
+  select(S174)
+  
+swapped_mitch_negativity <- data.frame(t(negative_with_mitch[-1]))
+colnames(swapped_mitch_negativity) <- negative_with_mitch[,1]
 
 
-#View(negative_with_mitch)
-
-mean(possible_republicans[['S174']])
-
+swapped_mitch_negativity
 
 ```
 
@@ -288,15 +285,72 @@ In both methods, for any target senator, we will select 2 other senators to pred
 - Method 1:
   - Pick the senators with the strongest positive and strongest negative correlation with the chosen senator.
   - Run OLS against both senators simultaneously.
+  
+```{r}
+
+#ols <- lm(S174 ~ TWO OTHER SENATORS, votes_df)
+
+#lm(S### ~ (sort(top 1), sort(bottom 1), df)
+
+#Create a function for this
+
+cor_matrix_senator <- as_tibble(cor_matrix, rownames = NA)
+
+
+method1 <- function(senID){
+  #find the top senator
+  
+  cor_matrix_senator_up <- cor_matrix_senator %>% 
+    select(senID) %>% 
+    slice_max(n =1 )
+    
+  #find the bottom senator
+  cor_matrix_senator_down <- cor_matrix_senator %>% 
+    select(senID) %>% 
+    slice_min(n =1 )
+  
+  #run ols
+  ols <- lm(Y ~ cor_matrix_senator[])
+}
+
+senator_id <- "S000"
+
+test <- function(senator_id){
+  cor_matrix_senator_down <- cor_matrix_senator %>% 
+  select(senator_id) 
+  return()
+}
+
+```
+  
+ 
+
 - Method 2:
-  - To identify the first senator, simply find the one senator with the strongest correlation.
-  - Run OLS of the target senator against the first senator and obtain the residuals.
-  - Identify the second senator by identifying the senator whose voting record has the strongest correlation with the residuals from above.
-  - Re-run OLS against both senator simultaneously.
+
+```{r}
+
+#  - To identify the first senator, simply find the one senator with the strongest correlation.
+
+
+
+#  - Run OLS of the target senator against the first senator and obtain the residuals.
+
+
+
+ # - Identify the second senator by identifying the senator whose voting record has the strongest correlation with the residuals from above.
+
+
+
+ # - Re-run OLS against both senator simultaneously.
+```
+
+
+
 
 Please answer the following:
-- Why isn't choosing the 2 senators with the 2 strongest positive correlations a reasonable strategy? This should be 3 or fewer sentences.
+**- Why isn't choosing the 2 senators with the 2 strongest positive correlations a reasonable strategy? This should be 3 or fewer sentences.**
 
+Just by seeing some people are more likely to vote with them than others doesn't mean that can help us predict the future vote. If this senator was a swing voter and has low correlations throughout, those would not help us. 
 
 - What does `lm()` do when one senator has no voting record for a particular bill? Is the behavior different if the senator is the independent or dependent variable?
 
@@ -310,5 +364,3 @@ Please answer the following:
 
 Side comment: For data mining purposes, one might look into the existence of a popular predictive senator!
 
-
-{% include lib/mathjax.html %}
