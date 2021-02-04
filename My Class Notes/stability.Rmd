@@ -1,0 +1,17 @@
+---
+title: "Stability"
+author: "Noah Love"
+date: "2/2/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Stability
+
+If we regress on all features, the significant and non significant features will change. Then feature does not perform in a stable way for your prediction. You cannot do causal inference if your model isn't first stable. 
+Different parts of your brain correspond to different parts of the image. We can use magnets to see what is being pictures up. When you don't account for stability, you get a huge scatter. The top three perform better than the bottom three. But the bottom three shows unique spots and we can use fewer, consistent places. 
+
+We want the model to do the same thing between data sets. 

@@ -1,5 +1,5 @@
 ---
-title: "Automated Model Selection"
+title: "Twitter"
 author: "Noah Love"
 date: "2/2/2021"
 output: html_document
@@ -13,7 +13,10 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ```{r}
 library(readr)
-df <- read.csv(file = "My Class Notes/small_non_retweets_dc_inaug_steal.csv")
+df <- read_csv("A:\\Documents\\Semester 6\\data-mining-at-columbia\\My Class Notes\\small_non_retweets_dc_inaug_steal.csv")
+View(df)
+
+
 ```
 
 
@@ -34,9 +37,47 @@ sample_ind <- sample(pos_ind, N, replace = TRUE)
 
 #df is NOT overwritten!
 new_df <- rbind(df[sample_ind, ],df)
-ols <- lm(steal_flag ~ trump + capital.police, data=new_df)
+ols <- lm(steal_flag ~ trump + capitol.police, data=new_df)
 ```
 
 -Up-sampling is a hack to make the objective function give more weight to the positive yet rare cases. 
 
+
+### Bootstrapping
+
+```{r}
+B <- 100
+
+coeffs <- matrix(NA, nrow=B, ncol=3)
+for(i in seq_len(B)){
+  boot_ind <- sample(nrow(df), nrow(df), replace=TRUE)
+  boot_df <- df[boot_ind, ]
+  boot_ols <- lm(steal_flag ~ trump + capitol.police, data=boot_df)
+  coeffs[i, ] <- boot_ols$coefficients
+}
+
+```
+
+
+```{r}
+k <- 5
+# Make sure each split, has roughly the same number of records!
+test_inds <- rep(1:k, nrow(df) / k)
+# Make sure things are random, no bias!
+test_inds <- sample(test_inds)
+
+i <- 1
+metrics <- c()
+for (i in seq_len(k)) {
+  is_test <- test_inds == i
+  is_train <- !is_test
+  ols <- lm(steal_flag ~ trump + capitol.police,
+            data = df[is_train,])
+  test_preds <- predict(ols, newdata = df[is_test, ])
+  metrics[i] <- sum(abs(df$steal_flag[is_test] - test_preds))
+}
+
+
+
+```
 
