@@ -3,8 +3,8 @@ title: "HW2"
 author: "Noah Love"
 date: "1/29/2021"
 output:
-  pdf_document: default
   html_document: default
+  pdf_document: default
 ---
 
 ```{r setup, include=FALSE}
