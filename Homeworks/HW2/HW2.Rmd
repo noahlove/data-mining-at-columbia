@@ -67,21 +67,6 @@ I got really stuck on the conversion. So this is a small scale version of the fo
 #   unnest() 
 
 
-# vals <- c()
-# bills <- c()
-# senator_codes <- names(votes_small)
-# for (i in seq_along(votes_small)) {
-# 	  bills[i] <- names(votes_small[[i]])
-#   for (j in seq_along(votes_small[[i]])) {
-#     vals[i] <- votes_small[[i]][[j]]
-#   }
-# }
-# 
-# df <- data.frame(Senator=senator_codes,Bill=bills,Vote=vals)
-# 
-# voting_matrix <- plyr::rbind.fill((votes_small))
-# voting_matrix
-
 #1. First create a matrix with all the bills and all the senators first, treating one as rows and the other as columns, then you fill in the matrix by subsetting (using your double loop above).
 
 #2. You could use merge() to join the senators' voting by the bill_ids.
@@ -154,24 +139,148 @@ Please articulate your expectations for the correlation matrix given the 2 party
 - How many modes do you expect to see in the distribution of correlation values?
 - Where will the correlation values center?
 
+I would expect strong correlation among members of the same party, meaning that about 50\% of the senate will be correlated together. There are also a few members of both parties that will likely be on the extremes of that party and not that correlated. 
+
+```{r correlation}
+ncol(votes_matrix)
+```
+Then the correlation matrix should be 231 by 231. 
+
 #### Q3 Mining with correlations
 Please calculate the correlation value between the senators' voting pattern, please set `use=pairwise.complete.obs`
 in the function `cor()`.
 
-- Please explain why R will warn you that some correlations cannot be computed.
-- Please plot the histogram of the lower triangular values within the correlation matrix. Hint: `lower.tri`
-    - Please comment on this histogram relative to your expectations from Q2. Side comment: make sure this makes sense to you!
-- Please re-order the correlataion matrix such that it starts with the highest positive correlation (1) to the strongest
-  negative correlation (-1) with respect to Senator McConnell's votes, i.e. the previous Senate majority leader who has
-  served since 1985 (id=`S174`, member of the Republican Party). Note that the [majority leader](https://www.senate.gov/artandhistory/history/common/briefing/Majority_Minority_Leaders.htm) is the party's spokesperson for the party's position on issues.
+```{r message=FALSE, include=FALSE}
+json_to_df <- function(nested_json){
+  json_og <-   fromJSON(paste(readLines(nested_json)))
+  json_df <- ldply(json_og, data.frame)
+  swapped_df <- data.frame(t(json_df[-1]))
+  colnames(swapped_df) <- json_df[,1]
+  return(swapped_df)
+}
+
+votes_df <- json_to_df('votes.json')
+```
+
+
+
+```{r warning=TRUE}
+cor_matrix <- cor(votes_matrix, use="pairwise.complete.obs")
+#View(cor_matrix)
+dim(cor_matrix)
+```
+
+** - Please explain why R will warn you that some correlations cannot be computed. **
+
+Not all correlations can be computed because many senators were not a senator during the time when the bills were voted on, meaning that there is a NA value rather than a 0. 
+
+
+
+** - Please plot the histogram of the lower triangular values within the correlation matrix. Hint: `lower.tri` **
+
+```{r}
+cor_lower_matrix <- cor_matrix
+
+cor_lower_matrix[upper.tri(cor_lower_matrix)] <- NA
+
+#View(cor_lower_matrix)
+
+hist(cor_lower_matrix)
+
+```
+
+
+**   - Please comment on this histogram relative to your expectations from Q2. Side comment: make sure this makes sense to you! **
+
+Similar to what I expected, although shifted. Possibly a little bit more towards zero than I expected as well. Also it is interesting that there is more positive skew. It would make sense though as its unlikely anyone disagreed on everything, as there are bills that should pass unanimously (like medals or certain funding bills).
+    
+
+    
+- Please re-order the correlataion matrix such that it starts with the highest positive correlation (1) to the strongest negative correlation (-1) with respect to Senator McConnell's votes, i.e. the previous Senate majority leader who has   served since 1985 (id=`S174`, member of the Republican Party). Note that the [majority leader](https://www.senate.gov/artandhistory/history/common/briefing/Majority_Minority_Leaders.htm) is the party's spokesperson for the party's position on issues.
   - It would make sense to filter out senators who do not overlap Senator McConnell.
+  
+```{r}
+#Remove those that do not overlap (Cor = NA)
+
+mitch_df <- as_tibble(cor_matrix, rownames = NA)
+#View(mitch_df)
+
+mitch_df <- mitch_df %>% 
+  rownames_to_column(var = "rowname") %>% 
+  filter(is.na(S174) ==FALSE) %>% 
+  arrange(desc(S174)) %>% 
+  relocate(S174) %>% 
+  column_to_rownames(var = "rowname") %>% 
+  as.matrix()
+
+#View(mitch_df) 
+```
+  
   - Please try to visualize this re-ordered correlation matrix, hint: `image()`
-- Please list the senators, if any, who have a negative correlation with Senator McConnell's votes but an **average** greater than
-  0.2 correlation with the "possible Republicans".
+  
+```{r}
+image(mitch_df)
+```
+  
+  
+- Please list the senators, if any, who have a negative correlation with Senator McConnell's votes but an **average** greater than 0.2 correlation with the "possible Republicans".
+
+```{r}
+mitch_df_2 <- as_tibble(mitch_df, rownames = NA)
+
+
+
+
+possible_republicans <- mitch_df_2 %>% 
+  rownames_to_column() %>% 
+  filter(S174 >= .2) %>% 
+  column_to_rownames()
+
+#View(possible_republicans)
+
+
+# json_to_tibble <- function(nested_json){
+#   json_og <-   fromJSON(paste(readLines(nested_json)))
+#   json_df <- ldply(json_og, data.frame)
+#   swapped_df <- data.frame(t(json_df[-1]))
+#   colnames(swapped_df) <- json_df[,1]
+#   json_matrix <- as.matrix(swapped_df)
+#   return(json_matrix)
+# }
+
+mitch_df_3 <- as_tibble(mitch_df, rownames = NA)
+
+
+negative_with_mitch <- mitch_df_3 %>% 
+  rownames_to_column() %>% 
+  filter(S174 <0) %>% 
+  column_to_rownames()  
+
+
+#View(negative_with_mitch)
+
+mean(possible_republicans[['S174']])
+
+
+```
+
   - We will define a 'possible Republican' as someone with a correlation of 0.2 or higher voting record with Senator McConnell.
   - You will need the file `voters.json` to get the names of these senators.
+  
+  
+```{r}
+senate <- as_tibble(rbind(voters_matrix, votes_matrix), rownames = NA)
+head(senate)
+```
+  
+  
+  
 - Why might this group be interesting if they exist? This will **not be graded** by the grader but your projects
   will require you to make this kind of articulation. This should be done in 5 or fewer sentences.
+
+
+
+
 
 #### Q4 Machine learning intuition with regression
 We will compare 2 feature selection methods for regression, with the goal of predicting a senator's voting pattern.
@@ -187,7 +296,12 @@ In both methods, for any target senator, we will select 2 other senators to pred
 
 Please answer the following:
 - Why isn't choosing the 2 senators with the 2 strongest positive correlations a reasonable strategy? This should be 3 or fewer sentences.
+
+
 - What does `lm()` do when one senator has no voting record for a particular bill? Is the behavior different if the senator is the independent or dependent variable?
+
+
+
 - For each senator, please randomly choose 20% of their bills data into a test set, then use the remaining 80% of bills to run both methods above. Please report which method has a better prediction performance according to what you see?
     - Do not impute the missing values
     - You should choose a prediction metric
