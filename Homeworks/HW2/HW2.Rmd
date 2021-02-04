@@ -2,7 +2,9 @@
 title: "HW2"
 author: "Noah Love"
 date: "1/29/2021"
-output: html_document
+output:
+  pdf_document: default
+  html_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -286,6 +288,8 @@ finished_tibble <- finished_tibble %>%
   filter(`Corr. To GOP`> .2)
 
 colnames(finished_tibble)
+
+finished_tibble
 
 ```
 
