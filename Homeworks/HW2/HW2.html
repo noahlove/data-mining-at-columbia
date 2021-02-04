@@ -568,6 +568,15 @@ colnames(finished_tibble)</code></pre>
 <pre><code>## [1] &quot;First Name&quot;               &quot;Last Name&quot;               
 ## [3] &quot;Party Affiliation&quot;        &quot;State&quot;                   
 ## [5] &quot;Corr. To GOP&quot;             &quot;Negative cor. with Mitch&quot;</code></pre>
+<pre class="r"><code>finished_tibble</code></pre>
+<pre><code>## # A tibble: 4 x 6
+##   `First Name` `Last Name` `Party Affiliat… State `Corr. To GOP`
+##   &lt;chr&gt;        &lt;chr&gt;       &lt;chr&gt;            &lt;chr&gt;          &lt;dbl&gt;
+## 1 Orrin        Hatch       R                UT             0.309
+## 2 Richard      Burr        R                NC             0.215
+## 3 Tom          Cotton      R                AR             0.313
+## 4 Ben          Sasse       R                NE             0.290
+## # … with 1 more variable: `Negative cor. with Mitch` &lt;chr&gt;</code></pre>
 <ul>
 <li>We will define a ‘possible Republican’ as someone with a correlation of 0.2 or higher voting record with Senator McConnell.</li>
 <li>You will need the file <code>voters.json</code> to get the names of these senators.</li>
