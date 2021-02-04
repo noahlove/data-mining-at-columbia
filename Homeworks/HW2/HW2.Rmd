@@ -237,12 +237,10 @@ possible_republicans <- mitch_df_2 %>%
 
 #Then we can compute the average correlation with possible republicans by just averaging each column.  
 
-View(possible_republicans)
+#View(possible_republicans)
 
 correlation_to_GOP <- possible_republicans %>% 
-  summarise_all(mean)
-
-correlation_to_GOP
+  summarise_each(funs(mean(.,na.rm = TRUE)))
 
 mitch_df_3 <- as_tibble(mitch_df, rownames = NA)
 
@@ -257,19 +255,31 @@ negative_with_mitch <- mitch_df_3 %>%
   pivot_wider(names_from=rowname, values_from=value) %>% 
   select(-name) 
 
-dim(negative_with_mitch)
-
-dim(correlation_to_GOP)
-
 voters_df <- as.data.frame(voters_matrix)
 
 complete_tibble <- as_tibble(rbind.fill(voters_df, correlation_to_GOP, negative_with_mitch))
 
-complete_tibble
+complete_df <- as.data.frame(complete_tibble)
+rownames(complete_df)[1] <- "First Name"
+rownames(complete_df)[2] <- "Last Name"
+rownames(complete_df)[3] <- "Party Affiliation"
+rownames(complete_df)[4] <- "State"
+rownames(complete_df)[5] <- "Corr. To GOP"
+rownames(complete_df)[6] <- "Negative cor. with Mitch"
 
-finished_tibble <- complete_tibble[ , colSums(is.na(complete_tibble)) == 0]
+finished_tibble <- complete_df[ , colSums(is.na(complete_tibble)) == 0]
+finished_tibble <- finished_tibble %>% 
+  tibble::rownames_to_column() %>%  
+  pivot_longer(-rowname) %>% 
+  pivot_wider(names_from=rowname, values_from=value) %>% 
+  select(-name) 
 
-finished_tibble
+finished_tibble$`Corr. To GOP` <- as.numeric(finished_tibble$`Corr. To GOP`)
+  
+finished_tibble <- finished_tibble %>% 
+  filter(`Corr. To GOP`> .2)
+
+colnames(finished_tibble)
 
 ```
 
@@ -277,16 +287,9 @@ finished_tibble
   - You will need the file `voters.json` to get the names of these senators.
   
   
-```{r}
-voters_matrix
+**Why might this group be interesting if they exist? This will not be graded by the grader but your projects will require you to make this kind of articulation. This should be done in 5 or fewer sentences.**
 
-
-```
-  
-  
-  
-- Why might this group be interesting if they exist? This will **not be graded** by the grader but your projects
-  will require you to make this kind of articulation. This should be done in 5 or fewer sentences.
+These are the "counterintutive" people. They provide a counterexample to what we consider to be the two-party system. These individuals are negatively correlated with their party leader, and yet are correlated with the party meaning that their voting patterns are likely on the edge of the party, far enough away from the party leader. 
 
 
 

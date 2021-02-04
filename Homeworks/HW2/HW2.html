@@ -510,79 +510,137 @@ mitch_df &lt;- mitch_df %&gt;%
 </ul>
 <pre class="r"><code>mitch_df_2 &lt;- as_tibble(mitch_df, rownames = NA)
 
-
-
-
 possible_republicans &lt;- mitch_df_2 %&gt;% 
   rownames_to_column() %&gt;% 
   filter(S174 &gt;= .2) %&gt;% 
   column_to_rownames()
 
+#now all the columns are still there, but only the rows are &quot;possible republicans&quot;.
+
+#Then we can compute the average correlation with possible republicans by just averaging each column.  
+
 #View(possible_republicans)
 
-
-# json_to_tibble &lt;- function(nested_json){
-#   json_og &lt;-   fromJSON(paste(readLines(nested_json)))
-#   json_df &lt;- ldply(json_og, data.frame)
-#   swapped_df &lt;- data.frame(t(json_df[-1]))
-#   colnames(swapped_df) &lt;- json_df[,1]
-#   json_matrix &lt;- as.matrix(swapped_df)
-#   return(json_matrix)
-# }
-
-mitch_df_3 &lt;- as_tibble(mitch_df, rownames = NA)
-
+correlation_to_GOP &lt;- possible_republicans %&gt;% 
+  summarise_each(funs(mean(.,na.rm = TRUE)))</code></pre>
+<pre><code>## Warning: `summarise_each_()` is deprecated as of dplyr 0.7.0.
+## Please use `across()` instead.
+## This warning is displayed once every 8 hours.
+## Call `lifecycle::last_warnings()` to see where this warning was generated.</code></pre>
+<pre><code>## Warning: `funs()` is deprecated as of dplyr 0.8.0.
+## Please use a list of either functions or lambdas: 
+## 
+##   # Simple named list: 
+##   list(mean = mean, median = median)
+## 
+##   # Auto named with `tibble::lst()`: 
+##   tibble::lst(mean, median)
+## 
+##   # Using lambdas
+##   list(~ mean(., trim = .2), ~ median(., na.rm = TRUE))
+## This warning is displayed once every 8 hours.
+## Call `lifecycle::last_warnings()` to see where this warning was generated.</code></pre>
+<pre class="r"><code>mitch_df_3 &lt;- as_tibble(mitch_df, rownames = NA)
 
 negative_with_mitch &lt;- mitch_df_3 %&gt;% 
   rownames_to_column() %&gt;% 
   filter(S174 &lt;0) %&gt;% 
-  column_to_rownames()  
+  column_to_rownames() %&gt;%  
+  select(S174) %&gt;% 
+  as.data.frame() %&gt;%
+  tibble::rownames_to_column() %&gt;%  
+  pivot_longer(-rowname) %&gt;% 
+  pivot_wider(names_from=rowname, values_from=value) %&gt;% 
+  select(-name) 
 
+voters_df &lt;- as.data.frame(voters_matrix)
 
-#View(negative_with_mitch)
+complete_tibble &lt;- as_tibble(rbind.fill(voters_df, correlation_to_GOP, negative_with_mitch))
 
-mean(possible_republicans[[&#39;S174&#39;]])</code></pre>
-<pre><code>## [1] 0.6139127</code></pre>
+complete_df &lt;- as.data.frame(complete_tibble)
+rownames(complete_df)[1] &lt;- &quot;First Name&quot;
+rownames(complete_df)[2] &lt;- &quot;Last Name&quot;
+rownames(complete_df)[3] &lt;- &quot;Party Affiliation&quot;
+rownames(complete_df)[4] &lt;- &quot;State&quot;
+rownames(complete_df)[5] &lt;- &quot;Corr. To GOP&quot;
+rownames(complete_df)[6] &lt;- &quot;Negative cor. with Mitch&quot;
+
+finished_tibble &lt;- complete_df[ , colSums(is.na(complete_tibble)) == 0]
+finished_tibble &lt;- finished_tibble %&gt;% 
+  tibble::rownames_to_column() %&gt;%  
+  pivot_longer(-rowname) %&gt;% 
+  pivot_wider(names_from=rowname, values_from=value) %&gt;% 
+  select(-name) 
+
+finished_tibble$`Corr. To GOP` &lt;- as.numeric(finished_tibble$`Corr. To GOP`)
+  
+finished_tibble &lt;- finished_tibble %&gt;% 
+  filter(`Corr. To GOP`&gt; .2)
+
+colnames(finished_tibble)</code></pre>
+<pre><code>## [1] &quot;First Name&quot;               &quot;Last Name&quot;               
+## [3] &quot;Party Affiliation&quot;        &quot;State&quot;                   
+## [5] &quot;Corr. To GOP&quot;             &quot;Negative cor. with Mitch&quot;</code></pre>
 <ul>
 <li>We will define a ‘possible Republican’ as someone with a correlation of 0.2 or higher voting record with Senator McConnell.</li>
 <li>You will need the file <code>voters.json</code> to get the names of these senators.</li>
 </ul>
-<pre class="r"><code>senate &lt;- as_tibble(rbind(voters_matrix, votes_matrix), rownames = NA)
-head(senate)</code></pre>
-<pre><code>## # A tibble: 6 x 231
-##   S238   S213  S250  S239  S127  S231  S010  S167  S200  S223  S179  S249  S206 
-##   &lt;chr&gt;  &lt;chr&gt; &lt;chr&gt; &lt;chr&gt; &lt;chr&gt; &lt;chr&gt; &lt;chr&gt; &lt;chr&gt; &lt;chr&gt; &lt;chr&gt; &lt;chr&gt; &lt;chr&gt; &lt;chr&gt;
-## 1 Spenc… Dani… Wayne John  Max   Robe… Jose… Jeff  Chri… Barb… John  Sam   Rich…
-## 2 Abrah… Akaka Alla… Ashc… Bauc… Benn… Biden Bing… Bond  Boxer Brea… Brow… Bryan
-## 3 R      D     R     R     D     R     D     D     R     D     D     R     D    
-## 4 MI     HI    CO    MO    MT    UT    DE    NM    MO    CA    LA    KS    NV   
-## 5 1      1     1     1     1     1     1     1     1     1     1     1     1    
-## 6 1      1     1     1     1     1     1     1     1     -1    1     1     1    
-## # … with 218 more variables: S014 &lt;chr&gt;, S211 &lt;chr&gt;, S017 &lt;chr&gt;, S225 &lt;chr&gt;,
-## #   S116 &lt;chr&gt;, S251 &lt;chr&gt;, S212 &lt;chr&gt;, S136 &lt;chr&gt;, S252 &lt;chr&gt;, S201 &lt;chr&gt;,
-## #   S228 &lt;chr&gt;, S215 &lt;chr&gt;, S147 &lt;chr&gt;, S185 &lt;chr&gt;, S240 &lt;chr&gt;, S150 &lt;chr&gt;,
-## #   S027 &lt;chr&gt;, S222 &lt;chr&gt;, S253 &lt;chr&gt;, S254 &lt;chr&gt;, S227 &lt;chr&gt;, S230 &lt;chr&gt;,
-## #   S221 &lt;chr&gt;, S033 &lt;chr&gt;, S241 &lt;chr&gt;, S035 &lt;chr&gt;, S152 &lt;chr&gt;, S199 &lt;chr&gt;,
-## #   S171 &lt;chr&gt;, S242 &lt;chr&gt;, S153 &lt;chr&gt;, S224 &lt;chr&gt;, S255 &lt;chr&gt;, S172 &lt;chr&gt;,
-## #   S118 &lt;chr&gt;, S046 &lt;chr&gt;, S047 &lt;chr&gt;, S256 &lt;chr&gt;, S235 &lt;chr&gt;, S236 &lt;chr&gt;,
-## #   S051 &lt;chr&gt;, S204 &lt;chr&gt;, S257 &lt;chr&gt;, S232 &lt;chr&gt;, S055 &lt;chr&gt;, S208 &lt;chr&gt;,
-## #   S173 &lt;chr&gt;, S209 &lt;chr&gt;, S243 &lt;chr&gt;, S258 &lt;chr&gt;, S166 &lt;chr&gt;, S057 &lt;chr&gt;,
-## #   S131 &lt;chr&gt;, S210 &lt;chr&gt;, S203 &lt;chr&gt;, S105 &lt;chr&gt;, S205 &lt;chr&gt;, S197 &lt;chr&gt;,
-## #   S174 &lt;chr&gt;, S182 &lt;chr&gt;, S226 &lt;chr&gt;, S113 &lt;chr&gt;, S157 &lt;chr&gt;, S229 &lt;chr&gt;,
-## #   S158 &lt;chr&gt;, S259 &lt;chr&gt;, S198 &lt;chr&gt;, S207 &lt;chr&gt;, S260 &lt;chr&gt;, S176 &lt;chr&gt;,
-## #   S083 &lt;chr&gt;, S244 &lt;chr&gt;, S106 &lt;chr&gt;, S261 &lt;chr&gt;, S184 &lt;chr&gt;, S216 &lt;chr&gt;,
-## #   S262 &lt;chr&gt;, S245 &lt;chr&gt;, S161 &lt;chr&gt;, S090 &lt;chr&gt;, S246 &lt;chr&gt;, S237 &lt;chr&gt;,
-## #   S096 &lt;chr&gt;, S263 &lt;chr&gt;, S143 &lt;chr&gt;, S217 &lt;chr&gt;, S247 &lt;chr&gt;, S264 &lt;chr&gt;,
-## #   S265 &lt;chr&gt;, S266 &lt;chr&gt;, S267 &lt;chr&gt;, S268 &lt;chr&gt;, S269 &lt;chr&gt;, S270 &lt;chr&gt;,
-## #   S271 &lt;chr&gt;, S272 &lt;chr&gt;, S273 &lt;chr&gt;, S274 &lt;chr&gt;, S275 &lt;chr&gt;, S276 &lt;chr&gt;, …</code></pre>
-<ul>
-<li>Why might this group be interesting if they exist? This will <strong>not be graded</strong> by the grader but your projects will require you to make this kind of articulation. This should be done in 5 or fewer sentences.</li>
-</ul>
+<p><strong>Why might this group be interesting if they exist? This will not be graded by the grader but your projects will require you to make this kind of articulation. This should be done in 5 or fewer sentences.</strong></p>
+<p>These are the “counterintutive” people. They provide a counterexample to what we consider to be the two-party system. These individuals are negatively correlated with their party leader, and yet are correlated with the party meaning that their voting patterns are likely on the edge of the party, far enough away from the party leader.</p>
 </div>
 <div id="q4-machine-learning-intuition-with-regression" class="section level4">
 <h4>Q4 Machine learning intuition with regression</h4>
-<p>We will compare 2 feature selection methods for regression, with the goal of predicting a senator’s voting pattern. In both methods, for any target senator, we will select 2 other senators to predict their vote on any issue. - Method 1: - Pick the senators with the strongest positive and strongest negative correlation with the chosen senator. - Run OLS against both senators simultaneously. - Method 2: - To identify the first senator, simply find the one senator with the strongest correlation. - Run OLS of the target senator against the first senator and obtain the residuals. - Identify the second senator by identifying the senator whose voting record has the strongest correlation with the residuals from above. - Re-run OLS against both senator simultaneously.</p>
-<p>Please answer the following: - Why isn’t choosing the 2 senators with the 2 strongest positive correlations a reasonable strategy? This should be 3 or fewer sentences.</p>
+<p>We will compare 2 feature selection methods for regression, with the goal of predicting a senator’s voting pattern. In both methods, for any target senator, we will select 2 other senators to predict their vote on any issue. - Method 1: - Pick the senators with the strongest positive and strongest negative correlation with the chosen senator. - Run OLS against both senators simultaneously.</p>
+<pre class="r"><code>#ols &lt;- lm(S174 ~ TWO OTHER SENATORS, votes_df)
+
+#lm(S### ~ (sort(top 1), sort(bottom 1), df)
+
+#Create a function for this
+
+cor_matrix_senator &lt;- as_tibble(cor_matrix, rownames = NA)
+
+
+method1 &lt;- function(senID){
+  #find the top senator
+  
+  cor_matrix_senator_up &lt;- cor_matrix_senator %&gt;% 
+    select(senID) %&gt;% 
+    slice_max(n =1 )
+    
+  #find the bottom senator
+  cor_matrix_senator_down &lt;- cor_matrix_senator %&gt;% 
+    select(senID) %&gt;% 
+    slice_min(n =1 )
+  
+  #run ols
+  ols &lt;- lm(Y ~ cor_matrix_senator[])
+}
+
+senator_id &lt;- &quot;S000&quot;
+
+test &lt;- function(senator_id){
+  cor_matrix_senator_down &lt;- cor_matrix_senator %&gt;% 
+  select(senator_id) 
+  return()
+}</code></pre>
+<ul>
+<li>Method 2:</li>
+</ul>
+<pre class="r"><code>#  - To identify the first senator, simply find the one senator with the strongest correlation.
+
+
+
+#  - Run OLS of the target senator against the first senator and obtain the residuals.
+
+
+
+ # - Identify the second senator by identifying the senator whose voting record has the strongest correlation with the residuals from above.
+
+
+
+ # - Re-run OLS against both senator simultaneously.</code></pre>
+<p>Please answer the following: <strong>- Why isn’t choosing the 2 senators with the 2 strongest positive correlations a reasonable strategy? This should be 3 or fewer sentences.</strong></p>
+<p>Just by seeing some people are more likely to vote with them than others doesn’t mean that can help us predict the future vote. If this senator was a swing voter and has low correlations throughout, those would not help us.</p>
 <ul>
 <li><p>What does <code>lm()</code> do when one senator has no voting record for a particular bill? Is the behavior different if the senator is the independent or dependent variable?</p></li>
 <li><p>For each senator, please randomly choose 20% of their bills data into a test set, then use the remaining 80% of bills to run both methods above. Please report which method has a better prediction performance according to what you see?</p>
@@ -594,7 +652,6 @@ head(senate)</code></pre>
 </ul></li>
 </ul>
 <p>Side comment: For data mining purposes, one might look into the existence of a popular predictive senator!</p>
-<p>{% include lib/mathjax.html %}</p>
 </div>
 </div>
 </div>
