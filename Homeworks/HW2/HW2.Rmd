@@ -15,6 +15,7 @@ library(data.tree)
 library("rjson")
 library(dplyr)
 library(plyr)
+library(ggcorrplot)
 ```
 
 # HW2 - Simple Data Mining
@@ -139,7 +140,9 @@ Please articulate your expectations for the correlation matrix given the 2 party
 - How many modes do you expect to see in the distribution of correlation values?
 - Where will the correlation values center?
 
-I would expect strong correlation among members of the same party, meaning that about 50\% of the senate will be correlated together. There are also a few members of both parties that will likely be on the extremes of that party and not that correlated. 
+I would expect strong correlation among members of the same party, meaning that about 50\% of the senate will be correlated together. There are also a few members of both parties that will likely be on the extremes of that party and not that correlated. Therefore I am expected a two hump correlation plot, with the density at 0 probably being about the same as the two extremes (so 2 modes). I would expect the correlation values to be really close to 0. This should depend on time frame I would think and who controlled congress. Beings as it appears Republicans had it longer, maybe it is a little shifted to republicans. 
+
+
 
 ```{r correlation}
 ncol(votes_matrix)
@@ -192,7 +195,7 @@ hist(cor_lower_matrix)
 
 **   - Please comment on this histogram relative to your expectations from Q2. Side comment: make sure this makes sense to you! **
 
-Similar to what I expected, although shifted. Possibly a little bit more towards zero than I expected as well. Also it is interesting that there is more positive skew. It would make sense though as its unlikely anyone disagreed on everything, as there are bills that should pass unanimously (like medals or certain funding bills).
+Similar to what I expected, although more shifted. I expected to see a small shift from more republicans. Possibly a little bit more towards zero than I expected as well for the two modes of the distribution. I expected party politics to be more entrenched. Also it is interesting that there is more positive skew. It would make sense though as its unlikely anyone disagreed on everything, as there are bills that should pass unanimously (like medals or certain funding bills).
     
 
     
@@ -219,13 +222,16 @@ mitch_df <- mitch_df %>%
   - Please try to visualize this re-ordered correlation matrix, hint: `image()`
   
 ```{r}
-image(mitch_df)
+#image(mitch_df)
+
+#alternative
+ggcorrplot(cor_matrix)
 ```
   
   
 - Please list the senators, if any, who have a negative correlation with Senator McConnell's votes but an **average** greater than 0.2 correlation with the "possible Republicans".
 
-```{r}
+```{r warning=FALSE}
 mitch_df_2 <- as_tibble(mitch_df, rownames = NA)
 
 possible_republicans <- mitch_df_2 %>% 
@@ -304,38 +310,38 @@ In both methods, for any target senator, we will select 2 other senators to pred
   
 ```{r}
 
-#ols <- lm(S174 ~ TWO OTHER SENATORS, votes_df)
-
-#lm(S### ~ (sort(top 1), sort(bottom 1), df)
-
-#Create a function for this
-
-cor_matrix_senator <- as_tibble(cor_matrix, rownames = NA)
-
-
-method1 <- function(senID){
-  #find the top senator
-  
-  cor_matrix_senator_up <- cor_matrix_senator %>% 
-    select(senID) %>% 
-    slice_max(n =1 )
-    
-  #find the bottom senator
-  cor_matrix_senator_down <- cor_matrix_senator %>% 
-    select(senID) %>% 
-    slice_min(n =1 )
-  
-  #run ols
-  ols <- lm(Y ~ cor_matrix_senator[])
-}
-
-senator_id <- "S000"
-
-test <- function(senator_id){
-  cor_matrix_senator_down <- cor_matrix_senator %>% 
-  select(senator_id) 
-  return()
-}
+# #ols <- lm(S174 ~ TWO OTHER SENATORS, votes_df)
+# 
+# #lm(S### ~ (sort(top 1), sort(bottom 1), df)
+# 
+# #Create a function for this
+# 
+# cor_matrix_senator <- as_tibble(cor_matrix, rownames = NA)
+# 
+# 
+# method1 <- function(senID){
+#   #find the top senator
+#   
+#   cor_matrix_senator_up <- cor_matrix_senator %>% 
+#     select(senID) %>% 
+#     slice_max(n =1 )
+#     
+#   #find the bottom senator
+#   cor_matrix_senator_down <- cor_matrix_senator %>% 
+#     select(senID) %>% 
+#     slice_min(n =1 )
+#   
+#   #run ols
+#   ols <- lm(Y ~ cor_matrix_senator[])
+# }
+# 
+# senator_id <- "S000"
+# 
+# test <- function(senator_id){
+#   cor_matrix_senator_down <- cor_matrix_senator %>% 
+#   select(senator_id) 
+#   return()
+# }
 
 ```
   
@@ -347,9 +353,21 @@ test <- function(senator_id){
 
 #  - To identify the first senator, simply find the one senator with the strongest correlation.
 
+# method2 <- function(senator_id){
+#   #highest cor
+#   
+#   cor_matrix_senator_up <- cor_matrix_senator %>%
+#   select(senID) %>%
+#   slice_max(n =1 )
+#   
+#   #run ols
+#   ols <- lm(cor_matrix_senator_up, senator_id)
+#   resids <- ols$residuals
+  
+  #correlation with the above residual
+  
+#}
 
-
-#  - Run OLS of the target senator against the first senator and obtain the residuals.
 
 
 
@@ -362,21 +380,18 @@ test <- function(senator_id){
 
 
 
-
 Please answer the following:
 **- Why isn't choosing the 2 senators with the 2 strongest positive correlations a reasonable strategy? This should be 3 or fewer sentences.**
 
 Just by seeing some people are more likely to vote with them than others doesn't mean that can help us predict the future vote. If this senator was a swing voter and has low correlations throughout, those would not help us. 
 
-- What does `lm()` do when one senator has no voting record for a particular bill? Is the behavior different if the senator is the independent or dependent variable?
+**What does `lm()` do when one senator has no voting record for a particular bill? Is the behavior different if the senator is the independent or dependent variable?**
 
 
 
-- For each senator, please randomly choose 20% of their bills data into a test set, then use the remaining 80% of bills to run both methods above. Please report which method has a better prediction performance according to what you see?
+For each senator, please randomly choose 20% of their bills data into a test set, then use the remaining 80% of bills to run both methods above. Please report which method has a better prediction performance according to what you see?
     - Do not impute the missing values
     - You should choose a prediction metric
     - This is not a full cross validation because we are not rotating the test set.
     - Please visualize the prediction performance across senators for both methods.
-
-Side comment: For data mining purposes, one might look into the existence of a popular predictive senator!
 
