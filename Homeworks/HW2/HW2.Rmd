@@ -12,7 +12,9 @@ library(tidyverse)
 library(jsonlite)
 library(tidyjson)
 library(data.tree)
-
+library("rjson")
+library(dplyr)
+library(plyr)
 ```
 
 # HW2 - Simple Data Mining
@@ -49,8 +51,8 @@ report `25%`.
 I got really stuck on the conversion. So this is a small scale version of the following.
 
 
-```{r}
-votes_small <- fromJSON('votes_small.json')
+```{r, include=FALSE}
+#votes_small <- fromJSON('votes_small.json')
 #votes_small
 
 #glimpse(votes_small)
@@ -65,74 +67,56 @@ votes_small <- fromJSON('votes_small.json')
 #   unnest() 
 
 
-vals <- c()
-bills <- c()
-senator_codes <- names(votes_small)
-for (i in seq_along(votes_small)) {
-	  bills[i] <- names(votes_small[[i]])
-  for (j in seq_along(votes_small[[i]])) {
-    vals[i] <- votes_small[[i]][[j]]
-  }
-}
-
-df <- data.frame(Senator=senator_codes,Bill=bills,Vote=vals)
-
-voting_matrix <- plyr::rbind.fill((votes_small))
-voting_matrix
+# vals <- c()
+# bills <- c()
+# senator_codes <- names(votes_small)
+# for (i in seq_along(votes_small)) {
+# 	  bills[i] <- names(votes_small[[i]])
+#   for (j in seq_along(votes_small[[i]])) {
+#     vals[i] <- votes_small[[i]][[j]]
+#   }
+# }
+# 
+# df <- data.frame(Senator=senator_codes,Bill=bills,Vote=vals)
+# 
+# voting_matrix <- plyr::rbind.fill((votes_small))
+# voting_matrix
 
 #1. First create a matrix with all the bills and all the senators first, treating one as rows and the other as columns, then you fill in the matrix by subsetting (using your double loop above).
 
 #2. You could use merge() to join the senators' voting by the bill_ids.
 
 #3. plyr::ribind.fill() basically does a merge for you but using the columns as the joining key.
-
-
-
-
-
 ```
 
-
 ```{r}
-library("rjson")
-library(jsonlite)
-library(plyr)
-
-convertJSON = function(jsonFile, OutputFile){
-  
-  
-  json_data <- fromJSON(paste(readLines(jsonFile)))
-  
-  output = ldply(json_data, data.frame)
-  write.csv(x=output, file=OutputFile)
-}
-
-convertJSON('votes_small.json', 'output1.csv')
-
-
-
 votes_small_json <- fromJSON(paste(readLines('votes_small.json')))
 votes_small_df <- ldply(votes_small_json, data.frame)
+#swap 
+votes_small_fx <- data.frame(t(votes_small_df[-1]))
+colnames(votes_small_fx) <- votes_small_df[,1]
 
 votes_small_df
+```
+```{r function for data transformation}
+json_to_matrix <- function(nested_json){
+  json_og <-   fromJSON(paste(readLines(nested_json)))
+  json_df <- ldply(json_og, data.frame)
+  swapped_df <- data.frame(t(json_df[-1]))
+  colnames(swapped_df) <- json_df[,1]
+  json_matrix <- as.matrix(swapped_df)
+  return(json_matrix)
+}
 
+#Test
+json_to_matrix('votes_small.json')
 ```
 
 
 
-```{r}
-votes <- jsonlite::fromJSON('votes.json')
-voting_matrix <- plyr::rbind.fill(as.data.frame(votes))
-```
-
-
-
-
-
-### My Work
+### Complete Dataset
 ```{r, include=FALSE}
 votes <- jsonlite::fromJSON('votes.json')
-voters <- jsonlite::fromJSON("voters.json")
 ```
 
 ```{r}
@@ -146,33 +130,23 @@ head(names(votes),18)
 ```
 This function shows all of the senators (based on their codes). We will use this to match up senators. 
 
-
-#### Example of the first part of the data to take out
-
-
-
-
-
-
-
-
-
-#### Rbind
-```{r}
-a <- data.frame(a = c(1, 2), b = c(3, 4))
-a
-b <- data.frame(a = c(3, 4))
-b
-plyr::rbind.fill(a, b)
+```{r warning=FALSE}
+votes_matrix <- json_to_matrix('votes.json')
+voters_matrix <- json_to_matrix('voters.json')
 ```
 
+#### RBind
+```{r rbind}
+senate <- rbind(voters_matrix, votes_matrix)
+```
 
+#### Dimensions
+```{r}
+dim(senate)
 
-
-
-
-
-
+#I used the votes instead of combined (senate) because there is no point in including names and parties in vote data. 
+sum(is.na(votes_matrix))/prod(dim(votes_matrix))
+```
 
 #### Q2 Expectations
 Please articulate your expectations for the correlation matrix given the 2 party system.
