@@ -7,6 +7,12 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(jsonlite)
+library(tidyjson)
+library(data.tree)
+
 ```
 
 # HW2 - Simple Data Mining
@@ -39,29 +45,94 @@ report `25%`.
 - I'm intentionally not telling you what are the columns and what are the rows, this should be implied.
 
 
+### Small scale work
+I got really stuck on the conversion. So this is a small scale version of the following.
+
+
+```{r}
+votes_small <- fromJSON('votes_small.json')
+#votes_small
+
+#glimpse(votes_small)
+
+#votes_small %>% map_if(is.data.frame, list) %>% as_tibble()
+
+# votes_small %>%
+#   discard(is_empty) %>% 
+#   map_if(is.list, data.frame) %>%
+#   map_if(is.data.frame, list) %>%
+#   as_tibble() %>% 
+#   unnest() 
+
+
+vals <- c()
+bills <- c()
+senator_codes <- names(votes_small)
+for (i in seq_along(votes_small)) {
+	  bills[i] <- names(votes_small[[i]])
+  for (j in seq_along(votes_small[[i]])) {
+    vals[i] <- votes_small[[i]][[j]]
+  }
+}
+
+df <- data.frame(Senator=senator_codes,Bill=bills,Vote=vals)
+
+voting_matrix <- plyr::rbind.fill((votes_small))
+voting_matrix
+
+#1. First create a matrix with all the bills and all the senators first, treating one as rows and the other as columns, then you fill in the matrix by subsetting (using your double loop above).
+
+#2. You could use merge() to join the senators' voting by the bill_ids.
+
+#3. plyr::ribind.fill() basically does a merge for you but using the columns as the joining key.
+
+
+
+
+
+```
+
+
+```{r}
+library("rjson")
+library(jsonlite)
+library(plyr)
+
+convertJSON = function(jsonFile, OutputFile){
+  
+  
+  json_data <- fromJSON(paste(readLines(jsonFile)))
+  
+  output = ldply(json_data, data.frame)
+  write.csv(x=output, file=OutputFile)
+}
+
+convertJSON('votes_small.json', 'output1.csv')
+
+
+
+votes_small_json <- fromJSON(paste(readLines('votes_small.json')))
+votes_small_df <- ldply(votes_small_json, data.frame)
+
+votes_small_df
+
+```
+
+
+
+```{r}
+votes <- jsonlite::fromJSON('votes.json')
+voting_matrix <- plyr::rbind.fill(as.data.frame(votes))
+```
+
+
+
+
 
 ### My Work
 ```{r, include=FALSE}
-library(tidyverse)
-
-
-
-
-
 votes <- jsonlite::fromJSON('votes.json')
 voters <- jsonlite::fromJSON("voters.json")
-
-length(names(votes))
-
-#names(voting) #displays all the senators in the file
-# votes.tibble <- tibble()
-# 
-# votes.tibble <- as_tibble(votes)
-# votes.tibble
-
-#head(senator_codes)
-
-
 ```
 
 ```{r}
@@ -78,26 +149,26 @@ This function shows all of the senators (based on their codes). We will use this
 
 #### Example of the first part of the data to take out
 
+
+
+
+
+
+
+
+
+#### Rbind
 ```{r}
-# {"S238": {"105_1_H.R. 1003_00044": 1, "105_1_H.R. 1119_00296": 1, "105_1_H.R. 1122_00071": 1, "105_1_H.R. 1469_00095": 1, "105_1_H.R. 1757_00105": 1, "105_1_H.R. 1871_00100": -1, "105_1_H.R. 2014_00211": 1, "105_1_H.R. 2015_00209": 1}
+a <- data.frame(a = c(1, 2), b = c(3, 4))
+a
+b <- data.frame(a = c(3, 4))
+b
+plyr::rbind.fill(a, b)
 ```
 
 
 
 
-
-```{r}
-votes1 <- lapply(votes, function(x) {
-  x[sapply(x, is.null)] <- NA
-  unlist(x)
-})
-
-df <- as.data.frame(do.call("cbind",votes1))
-
-library(DT)
-
-#View(df)
-```
 
 
 

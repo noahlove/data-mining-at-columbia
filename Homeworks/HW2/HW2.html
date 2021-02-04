@@ -383,6 +383,61 @@ summary {
 <p>Please report the dimensions of your matrix and what percentage of the matrix does not contain <code>-1</code>, <code>1</code>, or <code>0</code>. For example, if I only have 2 senators and 2 bills where one out of the four terms is not <code>-1</code>, <code>1</code>, or <code>0</code>, then I would report <code>25%</code>. - I’m intentionally not telling you what are the columns and what are the rows, this should be implied.</p>
 </div>
 </div>
+<div id="small-scale-work" class="section level3">
+<h3>Small scale work</h3>
+<p>I got really stuck on the conversion. So this is a small scale version of the following.</p>
+<pre class="r"><code>votes_small &lt;- fromJSON(&#39;votes_small.json&#39;)
+#votes_small
+
+glimpse(votes_small)</code></pre>
+<pre><code>## List of 3
+##  $ S238:List of 8
+##   ..$ 105_1_H.R. 1003_00044: int 1
+##   ..$ 105_1_H.R. 1119_00296: int 1
+##   ..$ 105_1_H.R. 1122_00071: int 1
+##   ..$ 105_1_H.R. 1469_00095: int 1
+##   ..$ 105_1_H.R. 1757_00105: int 1
+##   ..$ 105_1_H.R. 1871_00100: int -1
+##   ..$ 105_1_H.R. 2014_00211: int 1
+##   ..$ 105_1_H.R. 2015_00209: int 1
+##  $ S213:List of 5
+##   ..$ 105_1_H.R. 1003_00044: int 1
+##   ..$ 105_1_H.R. 1119_00296: int 1
+##   ..$ 105_1_H.R. 1122_00071: int -1
+##   ..$ 105_1_H.R. 1469_00095: int -1
+##   ..$ 105_1_H.R. 1757_00105: int 1
+##  $ S250:List of 6
+##   ..$ 105_1_H.R. 1003_00044: int 1
+##   ..$ 105_1_H.R. 1119_00296: int 1
+##   ..$ 105_1_H.R. 1122_00071: int 1
+##   ..$ 105_1_H.R. 1469_00095: int 1
+##   ..$ 105_1_H.R. 1757_00105: int 1
+##   ..$ 105_1_H.R. 1871_00100: int -1</code></pre>
+<pre class="r"><code>#votes_small %&gt;% map_if(is.data.frame, list) %&gt;% as_tibble()
+
+votes_small %&gt;%
+  discard(is_empty) %&gt;% 
+  map_if(is.list, data.frame) %&gt;%
+  map_if(is.data.frame, list) %&gt;%
+  as_tibble() %&gt;% 
+  unnest() </code></pre>
+<pre><code>## Warning: `cols` is now required when using unnest().
+## Please use `cols = c(S238, S213, S250)`</code></pre>
+<pre><code>## # A tibble: 1 x 19
+##   X105_1_H.R..100… X105_1_H.R..111… X105_1_H.R..112… X105_1_H.R..146…
+##              &lt;int&gt;            &lt;int&gt;            &lt;int&gt;            &lt;int&gt;
+## 1                1                1                1                1
+## # … with 15 more variables: X105_1_H.R..1757_00105 &lt;int&gt;,
+## #   X105_1_H.R..1871_00100 &lt;int&gt;, X105_1_H.R..2014_00211 &lt;int&gt;,
+## #   X105_1_H.R..2015_00209 &lt;int&gt;, X105_1_H.R..1003_000441 &lt;int&gt;,
+## #   X105_1_H.R..1119_002961 &lt;int&gt;, X105_1_H.R..1122_000711 &lt;int&gt;,
+## #   X105_1_H.R..1469_000951 &lt;int&gt;, X105_1_H.R..1757_001051 &lt;int&gt;,
+## #   X105_1_H.R..1003_000442 &lt;int&gt;, X105_1_H.R..1119_002962 &lt;int&gt;,
+## #   X105_1_H.R..1122_000712 &lt;int&gt;, X105_1_H.R..1469_000952 &lt;int&gt;,
+## #   X105_1_H.R..1757_001052 &lt;int&gt;, X105_1_H.R..1871_001001 &lt;int&gt;</code></pre>
+<pre class="r"><code>votes &lt;- jsonlite::fromJSON(&#39;votes.json&#39;)
+voting_matrix &lt;- plyr::rbind.fill(as.data.frame(votes))</code></pre>
+</div>
 <div id="my-work" class="section level3">
 <h3>My Work</h3>
 <pre class="r"><code>#View(votes)
@@ -395,18 +450,25 @@ length(votes) </code></pre>
 <p>This function shows all of the senators (based on their codes). We will use this to match up senators.</p>
 <div id="example-of-the-first-part-of-the-data-to-take-out" class="section level4">
 <h4>Example of the first part of the data to take out</h4>
-<pre class="r"><code># {&quot;S238&quot;: {&quot;105_1_H.R. 1003_00044&quot;: 1, &quot;105_1_H.R. 1119_00296&quot;: 1, &quot;105_1_H.R. 1122_00071&quot;: 1, &quot;105_1_H.R. 1469_00095&quot;: 1, &quot;105_1_H.R. 1757_00105&quot;: 1, &quot;105_1_H.R. 1871_00100&quot;: -1, &quot;105_1_H.R. 2014_00211&quot;: 1, &quot;105_1_H.R. 2015_00209&quot;: 1}</code></pre>
-<pre class="r"><code>votes1 &lt;- lapply(votes, function(x) {
-  x[sapply(x, is.null)] &lt;- NA
-  unlist(x)
-})
-
-df &lt;- as.data.frame(do.call(&quot;cbind&quot;,votes1))</code></pre>
-<pre><code>## Warning in cbind(S238 = c(`105_1_H.R. 1003_00044` = 1L, `105_1_H.R. 1119_00296`
-## = 1L, : number of rows of result is not a multiple of vector length (arg 1)</code></pre>
-<pre class="r"><code>library(DT)
-
-#View(df)</code></pre>
+</div>
+<div id="rbind" class="section level4">
+<h4>Rbind</h4>
+<pre class="r"><code>a &lt;- data.frame(a = c(1, 2), b = c(3, 4))
+a</code></pre>
+<pre><code>##   a b
+## 1 1 3
+## 2 2 4</code></pre>
+<pre class="r"><code>b &lt;- data.frame(a = c(3, 4))
+b</code></pre>
+<pre><code>##   a
+## 1 3
+## 2 4</code></pre>
+<pre class="r"><code>plyr::rbind.fill(a, b)</code></pre>
+<pre><code>##   a  b
+## 1 1  3
+## 2 2  4
+## 3 3 NA
+## 4 4 NA</code></pre>
 </div>
 <div id="q2-expectations" class="section level4">
 <h4>Q2 Expectations</h4>
