@@ -139,5 +139,143 @@ sum(abs(fitted_vals - ols$fitted.values))
 
 res <- df$Y - ols$fitted.values
 sum(abs(res - ols$residuals))
+plot(ols$residuals)
+abline(h = 0)
+
+```
+
+```{r}
+#you can also put plot onto the regression function itself
+plot(ols)
+#residuals vs fitted values. This is what we saw earlier but much fancier
+
+#QQ Plot
+
+#scale location not that important
+
+#leverage to look for outliers
+```
+#### Traps
+```{r}
+df_missing <- df
+df_missing[20, "Y"]  <- NA #purposeffully lose the value
+ols <- lm(Y ~., df_missing)
+length(ols$residuals)
+#lm drops missing value before matrix multiplication. So the residuals will change. 
+
+
+```
+
+### Interactions + subtracting variables
+
+
+#### Another trap
+
+```{r}
+ols <- lm(Y ~ X1 + X2 + X2*X3, df)
+ols <- lm(Y ~ X1 + X2 + X2:X3, df)
+
+summary(ols)
+test_preds <- predict(ols, df1)
+head(df1,2)
+#when you start manipulating the data inbetween then you get the problems
+
+#If you do feature engineering for test, then ADD SOMETHING
+```
+
+
+```{r}
+ols <- lm(Y ~ . - X4, df)
+summary(ols)
+
+#get rid of intercept
+ols <- lm(Y  ~ . -1, df)
+summary(ols)
+```
+
+INSERT STUFF ABOUT INTERACTION TERMS: COLON THING
+
+
+## Last trap, ording of the data
+```{r}
+x <- runif(n, -2 ,2)
+y <- x^2 * 3
+
+ols <-  lm(y~x)
+summary(ols)
+
+predict(ols, data.frame(x = runif(n,-2,2)))
+
+predict(ols, data.frame(x = runif(n, -2,2)))
+
+plot(x,y)
+
+plot(ols$residuals)
+#we should expect the residuals to be quadratic as well
+# we need to order the data correctly
+
+plot(ols$fitted.values,
+     ols$residuals)
+
+#remember the reisdualds are ordered the same as the data. If the data was random, then the residuals will be random. 
+
+plot(ols)
+
+#naming comment
+#If we decided to 
+dim(X)
+length(Y)
+
+
+ols <- lm(Y ~ X[,1:2])
+summary(ols)
+#the naming is a mess!
+
+wrong_stuff <- predict(ols, data.frame("X[, 1:2]" = 1:3,
+                        "X[, 1:2]2" = 1:3))
+                        
+
+mysterious_vals <- predict(ols)                       
+sum(abs(mysterious_vals - ols$fitted.values))
+```
+
+### Missing
+
+If there is no overlap in the data. Then there is no overlapping data. You can't run regression in that case. 
+
+you should probably have a reason to say you need a certain amount of overlap. The best way to get there is to find the needed level of confidence and then back in the answer. 
+
+### GLM
+```{r}
+inv_logit <- function(x) {
+  return(exp(x) / (1 + exp(x)))
+}
+y <- rbinom(n, 1, prob = inv_logit(X %*% params))
+plot(X[, 1], y)
+plot(X[, 2], y)
+
+df <- as.data.frame(cbind(y, X))
+names(df) <- c("Y", paste0("X", 1:5))
+log_reg <- glm(Y ~ ., df,
+               family = binomial(logit))
+
+summary(log_reg)
+predict(log_reg)
+myst_vals <- predict(log_reg, type = "response")
+
+X_test <- matrix(rnorm(n * p), nrow = n)
+X_test_df <- as.data.frame(X_test)
+names(X_test_df) <- names(df)[-1]
+
+test_preds <-
+  predict(log_reg, type = "response", newdata = X_test_df)
+head(test_preds)
+params
+
+
+library(randomForest)
+
+rf(Y ~ ., df)
+
 ```
 
