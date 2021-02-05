@@ -10,5 +10,134 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ## R Markdown
+Create data under the so called regression model. Regression is an algo, but it is also a model for creating data. ODS is a least sqaure algoristhm. 
 
+```{r}
+#God knows the true parameters, but unknown to us humans
+# n <- 100
+# p <- 5
+# params <- runif(p, -10, 10)     #
+# 
+# features <- matrix(rnorm(n* (p-1)),nrow = n,ncol = p-1) #one is column of one, or the intercept
+# 
+# X <- cbind(1, features)
+# 
+# #now combine the parameters with the X and add some noise
+# 
+# noise <- rnorm(n)
+# Y <- X  %*% params + noise
+# #Same as
+# Y2 <- 0
+# for(i in seq_len(p)){
+#   params[i] * X[,i]
+# }
+# Y2 <- Y2 + noise
+# 
+# dim(X)
+# 
+# plot(Y,Y2)
+
+```
+
+
+```{r}
+#Wayne's code
+n <- 100
+p <- 5
+# God knows this!
+params <- runif(p, -10, 10)
+
+features <- matrix(rnorm(n * p),
+                   nrow=n, ncol=p)
+X <- features
+X1 <- matrix(rnorm(n * p),
+              nrow=n, ncol=p)
+
+noise <- rnorm(n)
+noise1 <- rnorm(n)
+Y1 <- X %*% params + noise
+Y2 <- 0
+for(i in seq_len(p)){
+  Y2 <- Y2 + params[i] * X1[, i]
+}
+Y2 <- Y2 + noise1
+plot(X[,1], Y1)
+points(X1[, 1], Y2, col="red")
+
+
+```
+
+
+```{r}
+df <- as.data.frame(cbind(Y,X))
+
+dim(df)
+
+head(df,2)
+
+names(df) <- c("Y", paste0("X", 1:p))
+
+ols <- lm(Y ~ ., df)
+summary(ols)
+
+class(ols)
+predict(ols)
+
+#if you pass in a lm or glm, predict will use predict.lm or predict.glm anyways. It is smart. 
+
+#There is an argument in predict that uses "new data". You need to pass in what the new data is. It should be tempting for us to just pass in X1. 
+#This shouldn't work! But why?
+#predict(ols, newdata = as.data.frame(X1))
+
+#convert to df
+
+#now there is an error that we don't know what X2 is. The data frame you are passing it needs to have the same names that you are training on. 
+
+names(df)
+
+df1  <- as.data.frame(X1)
+names(df1) <- names(df)[-1]
+
+test_preds <- predict(
+  ols, 
+  newdata = df1)
+
+#The data you are passing, you need the data to look identical to the data you trained the model with. The names of the data frames must agree. 
+#classic workflow
+plot(test_preds , Y2)
+
+test_errors <- Y2 - test_preds
+test_rmse <- sqrt(mean(test_errors ^ 2))
+test_rmse
+
+
+sd(noise)
+sd(noise1)
+#You cannot reduce beyond this. 
+
+```
+R will automatically throw out extremely high colinearity instances. In the real world this would be rare. This is unique to R. 
+
+
+```{r}
+names(ols)
+
+#probably the most important
+ols$coefficients
+
+plot(ols$coefficients, c(0,params))
+abline(a = 0, b=1)
+
+```
+
+```{r}
+train_features <- cbind(1,as.matrix(df[,-1])) #take out y column
+#fitted_vals <- train_features %*% 
+  
+fitted_vals <- train_features %*% ols$coefficients
+sum(abs(fitted_vals - ols$fitted.values))
+
+res <- df$Y - ols$fitted.values
+sum(abs(res - ols$residuals))
+```
 
