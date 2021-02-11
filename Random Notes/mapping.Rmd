@@ -1,0 +1,117 @@
+---
+title: "Mapping practice"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+```{r}
+library(tigris)
+library(dplyr)
+library(leaflet)
+library(sp)
+library(ggmap)
+library(maptools)
+library(broom)
+library(httr)
+library(rgdal)
+```
+
+```{r}
+register_google(key = "AIzaSyAEkvFUTrN-n96QqRvpHxmtNyucQveP8oU")
+```
+
+ 
+```{r}
+nyc_map <- get_map(location = c(lon = -74.00, lat = 40.71), maptype = "terrain", zoom = 11)
+```
+
+
+```{r}
+ggmap(nyc_map)
+```
+
+
+Or make interactive maps using Leaflet for R in Rstudio.
+
+
+
+
+```{r}
+leaflet() %>%
+  addTiles() %>%
+  setView(-74.00, 40.71, zoom = 12)
+```
+
+Different Style in Leaflet
+
+```{r}
+leaflet() %>%
+  addTiles() %>%
+  setView(-74.00, 40.71, zoom = 12) %>%
+  addProviderTiles("CartoDB.Positron")
+```
+
+Tigris can be used to grab census shapefiles at various levels.
+
+```{r}
+lookup_code("New York", "New York")
+```
+Then we download the data and take a look at it. The summary below shows the data associated with each polygon (e.g., the GEOID and NAME). We can access data columns via nyc_tracts@data.
+
+```{r}
+nyc_tracts <- tracts(state = '36', county = c('061','047','081','005','085'))
+
+summary(nyc_tracts)
+```
+
+```{r}
+plot(nyc_tracts)
+```
+
+
+Neighborhoods
+Census tracts are great, but they might be too detailed for many purposes, where neighborhoods might be a more familiar unit of analysis. The PUMA Census neighborhoods for New York City lump together a few distinct areas (e.g., Chelsea, Flatiron, and the West Village), but Pediacities has more fine-grained neighborhood shapefiles available as a GeoJSON file.
+
+```{r}
+r <- GET('http://data.beta.nyc//dataset/0ff93d2d-90ba-457c-9f7e-39e47bf2ac5f/resource/35dd04fb-81b3-479b-a074-a27a37888ce7/download/d085e2f8d0b54d4590b1e7d1f35594c1pediacitiesnycneighborhoods.geojson')
+nyc_neighborhoods <- readOGR(content(r,'text'), 'OGRGeoJSON', verbose = F)
+```
+
+
+```{r}
+summary(nyc_neighborhoods)
+```
+ggplot
+ggplot can plot shapefiles but requires them to be converted from a spatial polygon data frame format to plain old data frames first. broom handles this with its tidy command. (fortify from the sp package also works.)
+
+```{r}
+nyc_neighborhoods_df <- tidy(nyc_neighborhoods)
+```
+
+
+```{r}
+ggplot() + 
+  geom_polygon(data=nyc_neighborhoods_df, aes(x=long, y=lat, group=group))
+```
+
+Overlay the two!
+
+
+```{r}
+ggmap(nyc_map) + 
+  geom_polygon(data=nyc_neighborhoods_df, aes(x=long, y=lat, group=group), color="blue", fill=NA)
+```
+
+Lets make it interactive!
+```{r}
+leaflet(nyc_neighborhoods) %>%
+  addTiles() %>% 
+  addPolygons(popup = ~neighborhood) %>%
+  addProviderTiles("CartoDB.Positron")
+```
+
