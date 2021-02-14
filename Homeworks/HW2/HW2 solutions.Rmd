@@ -1,0 +1,153 @@
+---
+title: "HW 2 Solutions"
+author: "Noah Love (adapted from Jaesung Son)"
+date: "2/13/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+```{r}
+library('jsonlite')
+library('RJSONIO')
+```
+
+```{r}
+votes <- fromJSON('votes.json')
+senator_id <-
+  sort(names(votes))
+session_id <- sort(unique(names(unlist(unname(
+  votes
+)))))
+voting_matrix <-
+  matrix(NA, nrow = length(session_id), ncol = length(senator_id))
+rownames(voting_matrix) <-  session_id
+colnames(voting_matrix) <-  senator_id
+
+# Making the matrix
+
+for(i in senator_id) {
+  for (j in session_id) {
+    if (j %in% names(votes[[i]])) {
+      voting_matrix[j, i] <- votes[[i]][[j]]
+    }
+  }
+}
+
+# Dimensions
+print(paste(
+  "Number of rows = ",
+  as.character(nrow(voting_matrix)),
+  ", number of columns = ",
+  as.character(ncol(voting_matrix))
+))
+```
+
+
+```{r}
+# Percentage of matrix that does not contain -1, 1 or 0
+
+print(paste(as.character((
+  sum(is.na(voting_matrix)) + sum(voting_matrix == -9999, na.rm = TRUE)
+) / (
+  nrow(voting_matrix) * ncol(voting_matrix)
+) * 100), "%"))
+```
+
+
+```{r}
+cor_matrix <- cor(voting_matrix, use = "pairwise.complete.obs")
+```
+
+
+```{r}
+lower_cor <- cor_matrix[lower.tri(cor_matrix)]
+```
+
+```{r}
+hist(lower_cor, main = "Histogram of Correlation Values", xlab = "Correlation")
+```
+
+
+
+```{r}
+left <- lower_cor[lower_cor < 0.25]
+right <- lower_cor[lower_cor >= 0.25]
+quantile(left, na.rm = TRUE)
+```
+
+
+```{r}
+quantile(right, na.rm = TRUE)
+```
+
+```{r}
+cor_with_mitch <- cor_matrix["S174", ]
+not_NA <- names(cor_with_mitch[!is.na(cor_with_mitch)])
+mitch_cor_mat <- cor_matrix[ , not_NA]
+mitch_order <- rev(names(sort(mitch_cor_mat["S174", ])))
+mitch_cor_mat <- mitch_cor_mat[ mitch_order , mitch_order]# Visualize
+image(mitch_cor_mat)
+```
+
+```{r}
+voters <- fromJSON("voters.json")
+cor_with_mitch <- mitch_cor_mat[1, ]
+
+# Defining Those with Negative Correlation with Mitch
+neg_cor_with_mitch <- names(cor_with_mitch[cor_with_mitch < 0])
+
+# Defining Possible Republicans
+poss_republican <-
+  names(cor_with_mitch[cor_with_mitch >= 0.2 &
+                         names(cor_with_mitch) != "S174"])
+
+# Finding Those with avg greater than 0.2 correlation with poss_repubicans
+subset_mat <- mitch_cor_mat[neg_cor_with_mitch, poss_republican]
+averages <- rowMeans(subset_mat, na.rm = TRUE)
+senators_criteria <- names(averages[averages > 0.2])
+
+senator_info <- voters[senators_criteria]
+
+print(senator_info)
+```
+
+```{r}
+lisa_id <- names(which(unlist(voters) == "Murkowski"))
+lisa_id <- "S157"
+
+
+cor_with_lisa <- cor_matrix[lisa_id, ]
+cor_max <- names(which.max(cor_with_lisa[names(cor_with_lisa) != lisa_id]))
+cor_min <- names(which.min(cor_with_lisa))
+
+
+ols <- lm(voting_matrix[ , lisa_id] ~ voting_matrix[ , cor_max] + voting_matrix[ , cor_min])
+
+summary(ols)
+```
+
+
+```{r}
+ols <- lm(voting_matrix[ , lisa_id] ~ voting_matrix[ , cor_max])
+
+res <- voting_matrix[ , lisa_id] - cbind(1, voting_matrix[ , cor_max]) %*% ols$coefficients
+
+cor_with_res <-function(x){return(cor(voting_matrix[ , x], res, use = "pairwise.complete.obs"))}
+
+senator_id_nolisa <- senator_id[senator_id != lisa_id]
+
+all_cor_with_res <- sapply(senator_id_nolisa, cor_with_res)
+
+
+max_cor_with_res <- names(which.max(all_cor_with_res))
+
+ols2 <- lm(voting_matrix[ , lisa_id] ~ voting_matrix[ , cor_max] + voting_matrix[ , max_cor_with_res])
+
+summary(ols2)
+```
+
