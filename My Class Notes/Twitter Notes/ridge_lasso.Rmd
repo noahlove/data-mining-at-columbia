@@ -13,32 +13,72 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## Regression requires more data than features
 
-```{r}
-install.packages("glmnet")
+```{r packages}
 library(glmnet)
 ```
+
 ```{r}
 df <- read.csv("non_retweets_dc_inaug_steal.csv")
 samp_ind <- sample(nrow(df), 8000)
 df <- df[samp_ind,]
 steal_index <- grep("steai", names(df))
 names(df)[steal_index]
-df[, "X.stopthesteai2020"] <- df[, "X.stopthesteai2020"] + df[, "X.stopthesteai"] + df[, "X.stopthesteai2021"]
+df[, "X.stopthesteai2020"] <- 
+  (df[, "X.stopthesteai2020"] + 
+     df[, "X.stopthesteai"] + 
+     df[, "X.stopthesteai2021"])
 
 df <- df[, -grep("(X.stopthesteai$|X.stopthesteai2021$)", names(df))]
-ols <- lm(X.stopthesteai2020 ~ ., df)
+
+text <- df[,grep("tweet_body", names(df))]
+
+df <- df[, -grep("(tweet_body|created_at)", names(df))]
+
+names(df)[grep("_", names(df))]
+head(df$created_at)
+
+
+
+
+df <- df[,sapply(df,class) == "numeric"]
+
+y_ind <- grep("X.stopthesteai2020", names(df))
+x <- as.matrix(df[, -y_ind])
+x <- scale(x)
+y <- as.numeric(df[, y_ind])
+bad_data <- which(is.na(x[, colnames(x) == "zone"]))
+x <- x[-bad_data,]
+y <- y[-bad_data]
+
+
+table(sapply(df,class))
+
+names(df)[sapply(df,class) == "character"]
+
+sum(apply(x,2, function(x) mean(is.na(x) > 0)))
+
+head(x[,colnames(x)=="zone"])
+
+tail(x[,colnames(x)=="zone"])
+
+head(y)
+
+
+ols <- lm(y ~ x)
 ols_coeffs <- summary(ols)$coefficients
+
+length(ols$coefficients)
 ```
 
 ```{r}
-library(glmnet)
 
-y_ind <- grep("X.stopthesteai2020", names(df))
+
 lasso_cv <- cv.glmnet(as.matrix(df[, -y_ind]),
                       as.numeric(df[, y_ind]),
                       alpha=1,
                       nfolds = 5,
                       intercept=TRUE)
+
 plot(lasso_cv)
 abline(v=log(lasso_cv$lambda.min),
        col="blue")
@@ -51,10 +91,12 @@ abline(v=log(lasso_cv$lambda.1se),
 lasso.fits <- lasso_cv$glmnet.fit
 lasso_cv$lambda[which.min(lasso_cv$cvm)]
 lasso_cv$lambda.min
+names(lasso_cv)
 lambda_ind <- which.min(lasso_cv$cvm)
 plot(ols$coefficients[-1],
      lasso_cv$glmnet.fit$beta[, lambda_ind], 
      xlab="OLS Coeffs", ylab="LASSO Coeffs")
+dim(lasso_cv$glmnet.fit$beta)
 abline(h=0)
 abline(a=0,b=1)
 ```
@@ -62,6 +104,10 @@ abline(a=0,b=1)
 ```{r}
 lasso_coeffs <- lasso_cv$glmnet.fit$beta[, lambda_ind]
 lasso_coeffs[abs(lasso_coeffs) > 0.5]
+
+hist(lasso_cv$glmnet.fit$beta[, lambda_ind])
+
+
 ```
 
 ```{r}
